@@ -13,6 +13,7 @@ main{max-width:640px;margin:auto;padding:12px}
 h2{margin:18px 0 8px;color:var(--a);font-size:19px}
 .c{background:#fff;border-radius:14px;padding:12px;margin-bottom:10px;box-shadow:0 1px 4px #0002;position:relative}
 .c img{width:100%;max-height:200px;object-fit:cover;border-radius:10px}
+.c img.bi{width:56px;height:56px;max-height:56px;object-fit:contain;flex:0 0 56px;background:#fff}
 .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .row button{flex:1}
 button,.btn{background:var(--a);color:#fff;border:2px solid var(--a);border-radius:10px;padding:10px 14px;font-size:15px;font-weight:600;text-decoration:none;display:inline-block;cursor:pointer}
@@ -73,7 +74,7 @@ function render(){
  if(view=="login")return login();if(view=="admin")return admin();
  const pr=M.precos||{},ops=M.opcoes||[];
  const mar=ops.length?`<h2>1. Escolha o tamanho</h2><div class="row">${["P","M","G"].map(t=>`<button class="${tam==t?"":"s"}" onclick="tam='${t}';render()">${TN[t]}<br>${R(pr[t])}</button>`).join("")}</div><h2>2. Escolha a marmita do dia</h2>`+ops.map((m,i)=>`<div class="c">${m.esgotado?'<span class="tag">ESGOTADO</span>':""}${m.foto?`<img src="${m.foto}">`:""}<b>${esc(m.nome)}</b><div>${esc(m.desc)}</div><div class="row"><button ${m.esgotado||!tam?"disabled":""} onclick="addM(${i})">${tam?"Adicionar ao pedido":"Escolha o tamanho acima"}</button></div></div>`).join(""):'<h2>Marmitas do dia</h2><div class="c">Cardápio do dia em breve.</div>';
- const beb=M.bebidas.map((b,i)=>`<div class="c q"><span>${esc(b.nome)} · ${R(b.preco)}</span><button ${b.esgotado?"disabled":""} onclick="addB(${i})">${b.esgotado?"Esgotado":"+"}</button></div>`).join("");
+ const beb=M.bebidas.map((b,i)=>`<div class="c q"><div style="display:flex;align-items:center;gap:10px;flex:1">${b.foto?`<img class="bi" src="${b.foto}">`:""}<span>${esc(b.nome)} · ${R(b.preco)}</span></div><button ${b.esgotado?"disabled":""} onclick="addB(${i})">${b.esgotado?"Esgotado":"+"}</button></div>`).join("");
  const itens=Object.entries(cart).map(([k,i])=>`<div class="q"><span>${i.q}x ${esc(i.nome)}</span><span>${R(i.q*i.preco)} <button class="s" onclick="mud('${k}',-1)">−</button> <button class="s" onclick="mud('${k}',1)">+</button></span></div>`).join("");
  const ea=typeof cli.end=="object"&&cli.end?cli.end:{};const sv=ea.rua&&!editEnd;
  const pg=pgs(),pn=pg[pag]||"";
@@ -112,12 +113,12 @@ function admin(){$("#bar").innerHTML="";const o=E.opcoes;
  <h2>Opções do dia (até 3)</h2>`+o.map((m,i)=>`<div class="c">${m.foto?`<img src="${m.foto}">`:""}${fld(`E.opcoes[${i}].nome`,m.nome,"Nome da opção")}${fld(`E.opcoes[${i}].desc`,m.desc,"Descrição / acompanhamentos")}
  <label class="f">Foto<input type="file" accept="image/*" onchange="foto(this,${i})"></label>${chk(`E.opcoes[${i}].esgotado`,m.esgotado)}<div class="row"><button class="r" onclick="E.opcoes.splice(${i},1);admin()">Remover</button></div></div>`).join("")+
  (o.length<3?`<button class="s" onclick="E.opcoes.push({id:'m'+Date.now(),nome:'',desc:'',esgotado:false});admin()">+ Opção</button>`:"")+
- `<h2>Bebidas</h2>`+E.bebidas.map((b,i)=>`<div class="c">${fld(`E.bebidas[${i}].nome`,b.nome,"Bebida")}${fld(`E.bebidas[${i}].preco`,b.preco,"Preço","number")}${chk(`E.bebidas[${i}].esgotado`,b.esgotado)}<div class="row"><button class="r" onclick="E.bebidas.splice(${i},1);admin()">Remover</button></div></div>`).join("")+
+ `<h2>Bebidas</h2>`+E.bebidas.map((b,i)=>`<div class="c">${b.foto?`<img class="bi" src="${b.foto}">`:""}${fld(`E.bebidas[${i}].nome`,b.nome,"Bebida")}${fld(`E.bebidas[${i}].preco`,b.preco,"Preço","number")}<label class="f">Foto<input type="file" accept="image/*" onchange="foto(this,${i},'bebidas')"></label>${chk(`E.bebidas[${i}].esgotado`,b.esgotado)}<div class="row"><button class="r" onclick="E.bebidas.splice(${i},1);admin()">Remover</button></div></div>`).join("")+
  `<button class="s" onclick="E.bebidas.push({id:'b'+Date.now(),nome:'',preco:0,esgotado:false});admin()">+ Bebida</button>
  <h2>Entrega e pagamento</h2><div class="c">${fld("E.taxa",E.taxa,"Taxa de entrega (R$)","number")}${fld("E.pagamentos",E.pagamentos,"Formas de pagamento (separe por vírgula)")}${fld("E.pix",E.pix,"Chave Pix (opcional)")}</div>
  <h2>Configurações</h2><div class="c">${fld("E.whatsapp",E.whatsapp,"WhatsApp com 55 + DDD")}${fld("E.endereco",E.endereco,"Endereço")}${fld("E.abre",E.abre,"Abre (ex: 10:30)")}${fld("E.fecha",E.fecha,"Fecha (ex: 13:30)")}</div>
  <div class="row"><button onclick="salvar()">Salvar tudo</button><button class="s" onclick="view='loja';render()">Ver site</button><button class="r" onclick="auth.signOut()">Sair</button></div>`}
 function salvar(){ref.set(E).then(()=>alert("Salvo! O cardápio já está atualizado.")).catch(e=>alert("Erro ao salvar: "+e.message))}
-function foto(inp,i){const f=inp.files[0];if(!f)return;const im=new Image();im.onload=()=>{const c=document.createElement("canvas"),s=Math.min(1,700/im.width);c.width=im.width*s;c.height=im.height*s;c.getContext("2d").drawImage(im,0,0,c.width,c.height);E.opcoes[i].foto=c.toDataURL("image/jpeg",.7);admin()};im.src=URL.createObjectURL(f)}
+function foto(inp,i,k="opcoes"){const f=inp.files[0];if(!f)return;const im=new Image();im.onload=()=>{const c=document.createElement("canvas"),s=Math.min(1,(k=="bebidas"?300:700)/im.width);c.width=im.width*s;c.height=im.height*s;c.getContext("2d").drawImage(im,0,0,c.width,c.height);E[k][i].foto=c.toDataURL("image/jpeg",.7);admin()};im.src=URL.createObjectURL(f)}
 render();
 </script></body></html>
