@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Bruna Tavares Marmita</title>
@@ -47,10 +47,11 @@ auth={onAuthStateChanged(f){_a=f;f(null)},signInWithEmailAndPassword(){setTimeou
 ref={onSnapshot(f){_s=f;f({exists:false})},set(d){_s({exists:true,data:()=>d});return Promise.resolve()}};
 document.getElementById("demo").style.display="block"}
 else{firebase.initializeApp(FB);auth=firebase.auth();ref=firebase.firestore().doc("config/menu")}
-const DEF={opcoes:[],espetinhos:[],precos:{P:0,M:0,G:0},taxa:6,pagamentos:"Pix, Dinheiro, Cartão de crédito, Cartão de débito",pix:"",
+const CATS=[["espetinhos","Espetinhos","Nome do espetinho","+ Espetinho"],["assados","Assados de domingo","Nome do assado","+ Assado"]];
+const DEF={opcoes:[],espetinhos:[],assados:[],precos:{P:0,M:0,G:0},taxa:6,pagamentos:"Pix, Dinheiro, Cartão de crédito, Cartão de débito",pix:"",
 bebidas:[{id:"b1",nome:"Coca-Cola 2L",preco:14,esgotado:false},{id:"b2",nome:"Guariti 2L",preco:10,esgotado:false},{id:"b3",nome:"Coca-Cola lata",preco:6,esgotado:false},{id:"b4",nome:"Guaraná lata",preco:6,esgotado:false},{id:"b5",nome:"Água",preco:3,esgotado:false}],
 whatsapp:"5517991337756",endereco:"R. Cristóvão Colombo, 1460 - Vila Maceno, São José do Rio Preto - SP, 15055-000",abre:"00:00",fecha:"23:59"};
-if(demo){DEF.precos={P:15,M:18,G:22};DEF.opcoes=[{id:"m1",nome:"Frango grelhado",desc:"Arroz, feijão, salada e farofa"},{id:"m2",nome:"Bife acebolado",desc:"Arroz, feijão, purê e salada"},{id:"m3",nome:"Strogonoff",desc:"Arroz, batata palha e salada"}];DEF.espetinhos=[{id:"e1",nome:"Espetinho de carne",desc:"Com farofa e vinagrete",preco:8}]}
+if(demo){DEF.precos={P:15,M:18,G:22};DEF.opcoes=[{id:"m1",nome:"Frango grelhado",desc:"Arroz, feijão, salada e farofa"},{id:"m2",nome:"Bife acebolado",desc:"Arroz, feijão, purê e salada"},{id:"m3",nome:"Strogonoff",desc:"Arroz, batata palha e salada"}];DEF.espetinhos=[{id:"e1",nome:"Espetinho de carne",desc:"Com farofa e vinagrete",preco:8}];DEF.assados=[{id:"a1",nome:"Frango assado inteiro",desc:"Com farofa",preco:45}]}
 const TN={P:"Pequena",M:"Média",G:"Grande"};
 let M=DEF,E=null,cart={},view="loja",user=null,editEnd=false,modo="retirada",tam="",pag=null,troco="",obs="";
 let cli=JSON.parse(localStorage.getItem("cli")||"{}");
@@ -63,7 +64,7 @@ ref.onSnapshot(d=>{M=d.exists?{...DEF,...d.data()}:DEF;if(view!="admin")render()
 auth.onAuthStateChanged(u=>{user=u;if(!u&&view=="admin")view="loja";render()});
 function addM(i){const m=M.opcoes[i];if(!tam||m.esgotado)return;const k=m.id+tam;cart[k]=cart[k]||{nome:`Marmita ${TN[tam]} - ${m.nome}`,preco:+M.precos[tam]||0,q:0};cart[k].q++;render()}
 function addB(i){const b=M.bebidas[i];if(b.esgotado)return;cart[b.id]=cart[b.id]||{nome:b.nome,preco:+b.preco||0,q:0};cart[b.id].q++;render()}
-function addE(i){const b=M.espetinhos[i];if(b.esgotado)return;cart[b.id]=cart[b.id]||{nome:b.nome,preco:+b.preco||0,q:0};cart[b.id].q++;render()}
+function addX(k,i){const b=M[k][i];if(b.esgotado)return;cart[b.id]=cart[b.id]||{nome:b.nome,preco:+b.preco||0,q:0};cart[b.id].q++;render()}
 function mud(k,d){cart[k].q+=d;if(cart[k].q<1)delete cart[k];render()}
 const sub=()=>Object.values(cart).reduce((s,i)=>s+i.q*i.preco,0);
 const taxa=()=>modo=="entrega"?Number(M.taxa)||0:0;
@@ -73,9 +74,9 @@ function render(){
  if($("#nome"))salvaCli();
  const ab=aberto();$("#st").className="st "+(ab?"on":"off");$("#st").textContent=ab?`Aberto agora · até ${M.fecha}`:`Fechado · ${M.abre} às ${M.fecha}`;
  if(view=="login")return login();if(view=="admin")return admin();
- const pr=M.precos||{},ops=M.opcoes||[],esps=M.espetinhos||[];
+ const pr=M.precos||{},ops=M.opcoes||[];
  const mar=ops.length?`<h2>1. Escolha o tamanho</h2><div class="row">${["P","M","G"].map(t=>`<button class="${tam==t?"":"s"}" onclick="tam='${t}';render()">${TN[t]}<br>${R(pr[t])}</button>`).join("")}</div><h2>2. Escolha a opção do dia</h2>`+ops.map((m,i)=>`<div class="c">${m.esgotado?'<span class="tag">ESGOTADO</span>':""}${m.foto?`<img src="${m.foto}">`:""}<b>${esc(m.nome)}</b><div>${esc(m.desc)}</div><div class="row"><button ${m.esgotado||!tam?"disabled":""} onclick="addM(${i})">${tam?"Adicionar ao pedido":"Escolha o tamanho acima"}</button></div></div>`).join(""):'<h2>Opções do dia</h2><div class="c">Cardápio do dia em breve.</div>';
- const espH=esps.length?`<h2>Espetinhos</h2>`+esps.map((b,i)=>`<div class="c q"><div style="display:flex;align-items:center;gap:10px;flex:1">${b.foto?`<img class="bi" src="${b.foto}">`:""}<span><b>${esc(b.nome)}</b> · ${R(b.preco)}${b.desc?`<br><small>${esc(b.desc)}</small>`:""}</span></div><button ${b.esgotado?"disabled":""} onclick="addE(${i})">${b.esgotado?"Esgotado":"+"}</button></div>`).join(""):"";
+ const extra=CATS.map(([k,t])=>{const a=M[k]||[];return a.length?`<h2>${t}</h2>`+a.map((b,i)=>`<div class="c q"><div style="display:flex;align-items:center;gap:10px;flex:1">${b.foto?`<img class="bi" src="${b.foto}">`:""}<span><b>${esc(b.nome)}</b> · ${R(b.preco)}${b.desc?`<br><small>${esc(b.desc)}</small>`:""}</span></div><button ${b.esgotado?"disabled":""} onclick="addX('${k}',${i})">${b.esgotado?"Esgotado":"+"}</button></div>`).join(""):""}).join("");
  const beb=M.bebidas.map((b,i)=>`<div class="c q"><div style="display:flex;align-items:center;gap:10px;flex:1">${b.foto?`<img class="bi" src="${b.foto}">`:""}<span>${esc(b.nome)} · ${R(b.preco)}</span></div><button ${b.esgotado?"disabled":""} onclick="addB(${i})">${b.esgotado?"Esgotado":"+"}</button></div>`).join("");
  const itens=Object.entries(cart).map(([k,i])=>`<div class="q"><span>${i.q}x ${esc(i.nome)}</span><span>${R(i.q*i.preco)} <button class="s" onclick="mud('${k}',-1)">−</button> <button class="s" onclick="mud('${k}',1)">+</button></span></div>`).join("");
  const ea=typeof cli.end=="object"&&cli.end?cli.end:{};const sv=ea.rua&&!editEnd;
@@ -88,7 +89,7 @@ function render(){
  <h2>Forma de pagamento</h2><div class="c">${pg.map((p,i)=>`<label class="rd"><input type="radio" name="pg" ${pag==i?"checked":""} onchange="pag=${i};render()"> ${esc(p)}</label>`).join("")}
  ${/dinheiro/i.test(pn)?`<label class="f">Troco para quanto?<input value="${esc(troco)}" oninput="troco=this.value"></label>`:""}${/pix/i.test(pn)&&M.pix?`<p>Chave Pix: <b>${esc(M.pix)}</b></p>`:""}</div>
  ${modo=="retirada"?`<h2>Retirada no local</h2><div class="c">📍 ${esc(M.endereco)}<div class="row"><a class="btn s" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(M.endereco)}">Como chegar</a></div></div>`:""}`;
- $("#app").innerHTML=`${mar}${espH}<h2>Bebidas</h2>${beb}${f}<p style="text-align:center"><a href="#" onclick="view=user?'admin':'login';E=JSON.parse(JSON.stringify(M));render();return false">Área do dono</a></p>`;
+ $("#app").innerHTML=`${mar}${extra}<h2>Bebidas</h2>${beb}${f}<p style="text-align:center"><a href="#" onclick="view=user?'admin':'login';E=JSON.parse(JSON.stringify(M));render();return false">Área do dono</a></p>`;
  $("#bar").innerHTML=Object.keys(cart).length?`<button ${ab?"":"disabled"} onclick="enviar()">${ab?`Enviar pedido pelo WhatsApp · ${R(sub()+taxa())}`:"Fechado no momento"}</button>`:"";
 }
 function enviar(){
@@ -110,13 +111,12 @@ function entrar(){auth.signInWithEmailAndPassword($("#em").value,$("#pw").value)
 function reset(){const e=$("#em").value;if(!e)return alert("Digite seu e-mail primeiro.");auth.sendPasswordResetEmail(e).then(()=>alert("Enviamos um e-mail para criar uma nova senha.")).catch(()=>alert("Não foi possível enviar. Confira o e-mail."))}
 const fld=(x,v,ph,t="text")=>`<label class="f">${ph}<input type="${t}" ${t=="number"?'step="0.01"':""} value="${esc(v)}" oninput="${x}=${t=="number"?"+this.value":"this.value"}"></label>`;
 const chk=(x,v)=>`<label class="rd"><input type="checkbox" ${v?"checked":""} onchange="${x}=this.checked"> Esgotado</label>`;
-function admin(){$("#bar").innerHTML="";const o=E.opcoes;E.espetinhos=E.espetinhos||[];
+function admin(){$("#bar").innerHTML="";const o=E.opcoes;
+ const adc=CATS.map(([k,t,ph,bt])=>{E[k]=E[k]||[];return `<h2>${t} (até 30)</h2>`+E[k].map((b,i)=>`<div class="c">${b.foto?`<img class="bi" src="${b.foto}">`:""}${fld(`E.${k}[${i}].nome`,b.nome,ph)}${fld(`E.${k}[${i}].desc`,b.desc,"Descrição (opcional)")}${fld(`E.${k}[${i}].preco`,b.preco,"Preço (cada)","number")}<label class="f">Foto<input type="file" accept="image/*" onchange="foto(this,${i},'${k}')"></label>${chk(`E.${k}[${i}].esgotado`,b.esgotado)}<div class="row"><button class="r" onclick="E.${k}.splice(${i},1);admin()">Remover</button></div></div>`).join("")+(E[k].length<30?`<button class="s" onclick="E.${k}.push({id:'${k[0]}'+Date.now(),nome:'',desc:'',preco:0,esgotado:false});admin()">${bt}</button>`:"")}).join("");
  $("#app").innerHTML=`<h2>Preço por tamanho</h2><div class="c">${["P","M","G"].map(t=>fld(`E.precos.${t}`,E.precos[t],"Marmita "+TN[t],"number")).join("")}</div>
  <h2>Opções do dia (até 15)</h2>`+o.map((m,i)=>`<div class="c">${m.foto?`<img src="${m.foto}">`:""}${fld(`E.opcoes[${i}].nome`,m.nome,"Nome da opção")}${fld(`E.opcoes[${i}].desc`,m.desc,"Descrição / acompanhamentos")}
  <label class="f">Foto<input type="file" accept="image/*" onchange="foto(this,${i})"></label>${chk(`E.opcoes[${i}].esgotado`,m.esgotado)}<div class="row"><button class="r" onclick="E.opcoes.splice(${i},1);admin()">Remover</button></div></div>`).join("")+
- (o.length<15?`<button class="s" onclick="E.opcoes.push({id:'m'+Date.now(),nome:'',desc:'',esgotado:false});admin()">+ Opção</button>`:"")+
- `<h2>Espetinhos (até 30)</h2>`+E.espetinhos.map((b,i)=>`<div class="c">${b.foto?`<img class="bi" src="${b.foto}">`:""}${fld(`E.espetinhos[${i}].nome`,b.nome,"Nome do espetinho")}${fld(`E.espetinhos[${i}].desc`,b.desc,"Descrição (opcional)")}${fld(`E.espetinhos[${i}].preco`,b.preco,"Preço (cada)","number")}<label class="f">Foto<input type="file" accept="image/*" onchange="foto(this,${i},'espetinhos')"></label>${chk(`E.espetinhos[${i}].esgotado`,b.esgotado)}<div class="row"><button class="r" onclick="E.espetinhos.splice(${i},1);admin()">Remover</button></div></div>`).join("")+
- (E.espetinhos.length<30?`<button class="s" onclick="E.espetinhos.push({id:'e'+Date.now(),nome:'',desc:'',preco:0,esgotado:false});admin()">+ Espetinho</button>`:"")+
+ (o.length<15?`<button class="s" onclick="E.opcoes.push({id:'m'+Date.now(),nome:'',desc:'',esgotado:false});admin()">+ Opção</button>`:"")+adc+
  `<h2>Bebidas</h2>`+E.bebidas.map((b,i)=>`<div class="c">${b.foto?`<img class="bi" src="${b.foto}">`:""}${fld(`E.bebidas[${i}].nome`,b.nome,"Bebida")}${fld(`E.bebidas[${i}].preco`,b.preco,"Preço","number")}<label class="f">Foto<input type="file" accept="image/*" onchange="foto(this,${i},'bebidas')"></label>${chk(`E.bebidas[${i}].esgotado`,b.esgotado)}<div class="row"><button class="r" onclick="E.bebidas.splice(${i},1);admin()">Remover</button></div></div>`).join("")+
  `<button class="s" onclick="E.bebidas.push({id:'b'+Date.now(),nome:'',preco:0,esgotado:false});admin()">+ Bebida</button>
  <h2>Entrega e pagamento</h2><div class="c">${fld("E.taxa",E.taxa,"Taxa de entrega (R$)","number")}${fld("E.pagamentos",E.pagamentos,"Formas de pagamento (separe por vírgula)")}${fld("E.pix",E.pix,"Chave Pix (opcional)")}</div>
