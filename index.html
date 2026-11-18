@@ -48,10 +48,10 @@ ref={onSnapshot(f){_s=f;f({exists:false})},set(d){_s({exists:true,data:()=>d});r
 document.getElementById("demo").style.display="block"}
 else{firebase.initializeApp(FB);auth=firebase.auth();ref=firebase.firestore().doc("config/menu")}
 const CATS=[["espetinhos","Espetinhos","Nome do espetinho","+ Espetinho"],["assados","Assados de domingo","Nome do assado","+ Assado"]];
-const DEF={opcoes:[],espetinhos:[],assados:[],precos:{P:0,M:0,G:0},taxa:6,pagamentos:"Pix, Dinheiro, Cartão de crédito, Cartão de débito",pix:"",
+const DEF={opcoes:[],espetinhos:[],assados:[],precos:{P:0,M:0,G:0},taxa:6,tempo:"",pagamentos:"Pix, Dinheiro, Cartão de crédito, Cartão de débito",pix:"",
 bebidas:[{id:"b1",nome:"Coca-Cola 2L",preco:14,esgotado:false},{id:"b2",nome:"Guariti 2L",preco:10,esgotado:false},{id:"b3",nome:"Coca-Cola lata",preco:6,esgotado:false},{id:"b4",nome:"Guaraná lata",preco:6,esgotado:false},{id:"b5",nome:"Água",preco:3,esgotado:false}],
 whatsapp:"5517991337756",endereco:"R. Cristóvão Colombo, 1460 - Vila Maceno, São José do Rio Preto - SP, 15055-000",abre:"00:00",fecha:"23:59"};
-if(demo){DEF.precos={P:15,M:18,G:22};DEF.opcoes=[{id:"m1",nome:"Frango grelhado",desc:"Arroz, feijão, salada e farofa"},{id:"m2",nome:"Bife acebolado",desc:"Arroz, feijão, purê e salada"},{id:"m3",nome:"Strogonoff",desc:"Arroz, batata palha e salada"}];DEF.espetinhos=[{id:"e1",nome:"Espetinho de carne",desc:"Com farofa e vinagrete",preco:8}];DEF.assados=[{id:"a1",nome:"Frango assado inteiro",desc:"Com farofa",preco:45}]}
+if(demo){DEF.precos={P:15,M:18,G:22};DEF.tempo="40 a 50 minutos";DEF.opcoes=[{id:"m1",nome:"Frango grelhado",desc:"Arroz, feijão, salada e farofa"},{id:"m2",nome:"Bife acebolado",desc:"Arroz, feijão, purê e salada"},{id:"m3",nome:"Strogonoff",desc:"Arroz, batata palha e salada"}];DEF.espetinhos=[{id:"e1",nome:"Espetinho de carne",desc:"Com farofa e vinagrete",preco:8}];DEF.assados=[{id:"a1",nome:"Frango assado inteiro",desc:"Com farofa",preco:45}]}
 const TN={P:"Pequena",M:"Média",G:"Grande"};
 let M=DEF,E=null,cart={},view="loja",user=null,editEnd=false,modo="retirada",tam="",pag=null,troco="",obs="";
 let cli=JSON.parse(localStorage.getItem("cli")||"{}");
@@ -84,7 +84,7 @@ function render(){
  const f=!Object.keys(cart).length?"":`<h2>Seu pedido</h2><div class="c">${itens}<div class="q"><span>Subtotal</span><span>${R(sub())}</span></div>${modo=="entrega"?`<div class="q"><span>Taxa de entrega</span><span>${R(taxa())}</span></div>`:""}<b>Total: ${R(sub()+taxa())}</b></div>
  <h2>Seus dados</h2><div class="c">${L("nome","Nome",cli.nome)}${L("tel","Telefone (WhatsApp)",cli.tel,"tel")}
  <div class="row"><label class="rd"><input type="radio" name="m" ${modo=="retirada"?"checked":""} onchange="modo='retirada';render()"> Retirar</label><label class="rd"><input type="radio" name="m" ${modo=="entrega"?"checked":""} onchange="modo='entrega';render()"> Entrega</label></div>
- ${modo=="entrega"?(sv?`<p>📍 ${esc(endTxt(ea))}</p><button class="s" onclick="salvaCli();editEnd=true;render()">Trocar endereço</button>`:L("rua","Rua",ea.rua)+L("numero","Número",ea.num)+L("bairro","Bairro",ea.bairro)+L("comp","Complemento (apto, bloco...)",ea.comp)+L("ref","Ponto de referência",ea.ref))+`<p>🛵 Taxa de entrega: <b>${R(M.taxa)}</b></p>`:""}
+ ${modo=="entrega"?(sv?`<p>📍 ${esc(endTxt(ea))}</p><button class="s" onclick="salvaCli();editEnd=true;render()">Trocar endereço</button>`:L("rua","Rua",ea.rua)+L("numero","Número",ea.num)+L("bairro","Bairro",ea.bairro)+L("comp","Complemento (apto, bloco...)",ea.comp)+L("ref","Ponto de referência",ea.ref))+`<p>🛵 Taxa de entrega: <b>${R(M.taxa)}</b></p>${M.tempo?`<p>⏱ Tempo de entrega: <b>${esc(M.tempo)}</b></p>`:""}`:""}
  <label class="f">Observações<textarea oninput="obs=this.value">${esc(obs)}</textarea></label></div>
  <h2>Forma de pagamento</h2><div class="c">${pg.map((p,i)=>`<label class="rd"><input type="radio" name="pg" ${pag==i?"checked":""} onchange="pag=${i};render()"> ${esc(p)}</label>`).join("")}
  ${/dinheiro/i.test(pn)?`<label class="f">Troco para quanto? (valor da nota que vai pagar)<input inputmode="decimal" value="${esc(troco)}" oninput="troco=this.value"></label>`:""}${/pix/i.test(pn)&&M.pix?`<p>Chave Pix: <b>${esc(M.pix)}</b></p>`:""}</div>
@@ -100,7 +100,7 @@ function enviar(){
  if(/dinheiro/i.test(pn)&&troco){const v=parseFloat(String(troco).replace(/[^\d,.]/g,"").replace(",","."));const tt=sub()+taxa();if(!(v>=tt))return alert("O valor do troco deve ser igual ou maior que o total do pedido ("+R(tt)+").")}
  const l=["*Novo pedido - Bruna Tavares Marmita*","",`Nome: ${cli.nome}`,`Telefone: ${cli.tel}`,modo=="entrega"?`Entrega: ${endTxt(cli.end)}`:"Retirada no local","",
  ...Object.values(cart).map(i=>`${i.q}x ${i.nome} - ${R(i.q*i.preco)}`),"",`Subtotal: ${R(sub())}`];
- if(modo=="entrega")l.push(`Taxa de entrega: ${R(taxa())}`);
+ if(modo=="entrega"){l.push(`Taxa de entrega: ${R(taxa())}`);if(M.tempo)l.push(`Tempo de entrega: ${M.tempo}`)}
  l.push(`*Total: ${R(sub()+taxa())}*`,"",`Pagamento: ${pn}${/dinheiro/i.test(pn)&&troco?" (troco para "+troco+")":""}`);
  if(obs)l.push("",`Obs: ${obs}`);
  const u=`https://wa.me/${M.whatsapp}?text=${encodeURIComponent(l.join("\n"))}`;
@@ -120,7 +120,7 @@ function admin(){$("#bar").innerHTML="";const o=E.opcoes;
  (o.length<15?`<button class="s" onclick="E.opcoes.push({id:'m'+Date.now(),nome:'',desc:'',esgotado:false});admin()">+ Opção</button>`:"")+adc+
  `<h2>Bebidas</h2>`+E.bebidas.map((b,i)=>`<div class="c">${b.foto?`<img class="bi" src="${b.foto}">`:""}${fld(`E.bebidas[${i}].nome`,b.nome,"Bebida")}${fld(`E.bebidas[${i}].preco`,b.preco,"Preço","number")}<label class="f">Foto<input type="file" accept="image/*" onchange="foto(this,${i},'bebidas')"></label>${chk(`E.bebidas[${i}].esgotado`,b.esgotado)}<div class="row"><button class="r" onclick="E.bebidas.splice(${i},1);admin()">Remover</button></div></div>`).join("")+
  `<button class="s" onclick="E.bebidas.push({id:'b'+Date.now(),nome:'',preco:0,esgotado:false});admin()">+ Bebida</button>
- <h2>Entrega e pagamento</h2><div class="c">${fld("E.taxa",E.taxa,"Taxa de entrega (R$)","number")}${fld("E.pagamentos",E.pagamentos,"Formas de pagamento (separe por vírgula)")}${fld("E.pix",E.pix,"Chave Pix (opcional)")}</div>
+ <h2>Entrega e pagamento</h2><div class="c">${fld("E.taxa",E.taxa,"Taxa de entrega (R$)","number")}${fld("E.tempo",E.tempo,"Tempo de entrega (ex: 40 a 50 minutos)")}${fld("E.pagamentos",E.pagamentos,"Formas de pagamento (separe por vírgula)")}${fld("E.pix",E.pix,"Chave Pix (opcional)")}</div>
  <h2>Configurações</h2><div class="c">${fld("E.whatsapp",E.whatsapp,"WhatsApp com 55 + DDD")}${fld("E.endereco",E.endereco,"Endereço")}${fld("E.abre",E.abre,"Abre (ex: 10:30)")}${fld("E.fecha",E.fecha,"Fecha (ex: 13:30)")}</div>
  <div class="row"><button onclick="salvar()">Salvar tudo</button><button class="s" onclick="view='loja';render()">Ver site</button><button class="r" onclick="auth.signOut()">Sair</button></div>`}
 function salvar(){ref.set(E).then(()=>alert("Salvo! O cardápio já está atualizado.")).catch(e=>alert("Erro ao salvar: "+e.message))}
